@@ -15,6 +15,7 @@ const state = vi.hoisted(() => ({
 vi.mock("../lib/data", () => ({
   useData: () => ({
     ...state,
+    serviceDayStart: Date.now() - 3_600_000,
     announcements: [
       {
         id: "today",

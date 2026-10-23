@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOrderAge, summarizeOrderItems } from "./order-presentation";
+import { elapsedTone, formatElapsed, getOrderAge, summarizeOrderItems } from "./order-presentation";
 import type { Order } from "../types";
 const base: Order = {
   id: "a",
@@ -43,5 +43,21 @@ describe("注文票表示", () => {
     expect(getOrderAge(base.createdAt, start + 300_000).level).toBe("waiting");
     expect(getOrderAge(base.createdAt, start + 600_000).level).toBe("late");
     expect(getOrderAge(base.createdAt, start + 60_000).label).toBe("1分経過");
+  });
+});
+
+describe("経過時間表示", () => {
+  const placed = "2026-09-04T12:00:00Z";
+  const at = (seconds: number) => Date.parse(placed) + seconds * 1000;
+
+  it("mm:ss で表示し、1時間を超えたら時間も表示する", () => {
+    expect(formatElapsed(placed, at(65))).toBe("01:05");
+    expect(formatElapsed(placed, at(3725))).toBe("01:02:05");
+  });
+  it("経過時間に応じて色の段階を変える", () => {
+    expect(elapsedTone(placed, at(299))).toBe("normal");
+    expect(elapsedTone(placed, at(300))).toBe("waiting");
+    expect(elapsedTone(placed, at(600))).toBe("late");
+    expect(elapsedTone(placed, at(900))).toBe("critical");
   });
 });

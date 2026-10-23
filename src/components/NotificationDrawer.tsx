@@ -1,24 +1,15 @@
 import { AlertTriangle, Bell, Plus, Send } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useData } from "../lib/data";
-import { getCurrentServiceDayStart } from "../lib/service-day";
 import { announcementKindLabels, type AnnouncementKind } from "../types";
 import { Modal } from "./Modal";
 export const NotificationDrawer = ({ onClose }: { onClose: () => void }) => {
-  const { announcements, profile, isStaff, sendAnnouncement } = useData();
-  const [start, setStart] = useState(() => getCurrentServiceDayStart());
+  const { announcements, profile, isStaff, sendAnnouncement, serviceDayStart: start } = useData();
   const [composing, setComposing] = useState(false);
   const [kind, setKind] = useState<AnnouncementKind>("notice");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState("");
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => setStart(getCurrentServiceDayStart()),
-      30_000,
-    );
-    return () => window.clearInterval(timer);
-  }, []);
   const current = announcements
     .filter((a) => new Date(a.createdAt).getTime() >= start)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));

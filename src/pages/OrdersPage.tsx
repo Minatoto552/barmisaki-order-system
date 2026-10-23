@@ -6,18 +6,23 @@ import {
   Eye,
   UserRound,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Modal } from "../components/Modal";
 import { RecipeViewer } from "../components/RecipeViewer";
 import { OptionSummary } from "../components/CartPanel";
+import { useClockValue } from "../lib/clock";
 import { useData } from "../lib/data";
 import {
   groupOrdersByCart,
   matchesOrderGroupFilter,
   type OrderGroup,
 } from "../lib/order-groups";
-import { summarizeOrderItems, getOrderAge } from "../lib/order-presentation";
-import { getCurrentServiceDayStart } from "../lib/service-day";
+import {
+  elapsedTone,
+  formatElapsed,
+  getOrderAge,
+  summarizeOrderItems,
+} from "../lib/order-presentation";
 import {
   emergencyKindLabels,
   orderInstanceLabels,
@@ -46,20 +51,15 @@ export const OrdersPage = () => {
     ready,
     runtimeMode,
     error: connectionError,
+    serviceDayStart: dayStart,
   } = useData();
   const [instanceFilter, setInstanceFilter] =
     useState<InstanceFilter>("first");
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [recipe, setRecipe] = useState<Order | null>(null);
   const [detail, setDetail] = useState<Emergency | null>(null);
-  const [now, setNow] = useState(Date.now);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 10_000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const dayStart = getCurrentServiceDayStart(new Date(now));
   const groups = useMemo(
     () =>
       groupOrdersByCart(
@@ -268,7 +268,6 @@ export const OrdersPage = () => {
                 <OrderRow
                   key={group.id}
                   group={group}
-                  now={now}
                   isStaff={isStaff}
                   busy={!!busy}
                   onStatus={(status) => void change(group, status)}
@@ -311,53 +310,37 @@ export const OrdersPage = () => {
     </div>
   );
 };
-const elapsed = (createdAt: string, now: number) => {
-  const total = Math.max(0, Math.floor((now - Date.parse(createdAt)) / 1000));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const seconds = total % 60;
-  const value = [minutes, seconds]
-    .map((part) => String(part).padStart(2, "0"))
-    .join(":");
-  return {
-    value: hours ? `${String(hours).padStart(2, "0")}:${value}` : value,
-    tone:
-      total >= 900
-        ? "critical"
-        : total >= 600
-          ? "late"
-          : total >= 300
-            ? "waiting"
-            : "normal",
-  };
+/** Each row subscribes only to the values it shows, so a tick re-renders just the cells that change. */
+const ElapsedValue = ({ createdAt }: { createdAt: string }) => {
+  const value = useClockValue((now) => formatElapsed(createdAt, now));
+  return <>{value}</>;
 };
-const OrderRow = ({
+
+const OrderRow = memo(function OrderRow({
   group,
-  now,
   isStaff,
   busy,
   onStatus,
   onRecipe,
 }: {
   group: OrderGroup;
-  now: number;
   isStaff: boolean;
   busy: boolean;
   onStatus: (status: OrderStatus) => void;
   onRecipe: (order: Order) => void;
-}) => {
-  const age = getOrderAge(group.createdAt, now);
-  const duration = elapsed(group.createdAt, now);
+}) {
+  const tone = useClockValue((now) => elapsedTone(group.createdAt, now));
+  const isNew = useClockValue((now) => getOrderAge(group.createdAt, now).isNew);
   const lines = summarizeOrderItems(group.orders);
   return (
     <article
-      className={`order-catalog-row ${group.status !== "completed" ? duration.tone : ""}`}
+      className={`order-catalog-row ${group.status !== "completed" ? tone : "is-completed"}`}
       role="row"
     >
       <div className="order-number-cell" role="cell">
         <strong>#{group.receiptNumber}</strong>
         <div>
-          {age.isNew && group.status !== "completed" && (
+          {isNew && group.status !== "completed" && (
             <span className="new-badge">NEW</span>
           )}
         </div>
@@ -419,10 +402,10 @@ const OrderRow = ({
         {time(group.createdAt)}
       </time>
       <div
-        className={`order-table-cell elapsed-cell ${group.status === "completed" ? "completed" : duration.tone}`}
+        className={`order-table-cell elapsed-cell ${group.status === "completed" ? "completed" : tone}`}
         role="cell"
       >
-        {group.status === "completed" ? "—" : duration.value}
+        {group.status === "completed" ? "—" : <ElapsedValue createdAt={group.createdAt} />}
       </div>
       <div className="order-table-cell status-cell" role="cell">
         <span className={`status-pill ${group.status}`}>
@@ -462,4 +445,4 @@ const OrderRow = ({
       </div>
     </article>
   );
-};
+});

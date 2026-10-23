@@ -73,6 +73,8 @@ interface DataContextValue {
   emergencies: Emergency[];
   announcements: Announcement[];
   isStaff: boolean;
+  /** Start of the current service day (05:00 JST), refreshed when the day rolls over. */
+  serviceDayStart: number;
   runtimeMode: typeof runtimeMode;
   saveProfile: (displayName: string) => Promise<void>;
   restoreProfile: (source: UserProfile) => Promise<void>;
@@ -588,9 +590,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo<DataContextValue>(() => ({
     ready, error, uid: user?.uid || localUid, profile,
     recoverableProfiles: knownProfiles.filter((candidate) => candidate.id !== user?.uid && products.some((product) => product.createdBy === candidate.id)),
-    products, orders, emergencies, announcements, isStaff,
+    products, orders, emergencies, announcements, isStaff, serviceDayStart,
     runtimeMode, saveProfile, restoreProfile, addProduct, updateProduct, deleteProduct, duplicateProduct, placeCart, sendEmergency, sendAnnouncement, updateEmergency, updateOrder,
-  }), [addProduct, announcements, emergencies, error, isStaff, localUid, orders, products, profile, ready,
+  }), [addProduct, announcements, emergencies, error, isStaff, localUid, serviceDayStart, orders, products, profile, ready,
     saveProfile, restoreProfile, knownProfiles, sendAnnouncement, sendEmergency, updateEmergency, updateOrder, user?.uid, placeCart, updateProduct, deleteProduct, duplicateProduct]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
