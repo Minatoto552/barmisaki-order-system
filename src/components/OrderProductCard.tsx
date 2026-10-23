@@ -1,4 +1,4 @@
-import { Coffee, Plus } from "lucide-react";
+import { Coffee, PawPrint } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { categoryLabels, type Product } from "../types";
 import { isTemperatureProduct } from "../lib/order-options";
@@ -74,7 +74,7 @@ export const OrderProductCard = ({
         )}
       </div>
       <span className="product-add-icon" aria-hidden="true">
-        <Plus />
+        <PawPrint />
       </span>
     </button>
   );

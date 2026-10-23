@@ -124,7 +124,7 @@ export const AppShell = () => {
           <Icon />
           <span>{label}</span>
           {to === "/orders" && pending > 0 && (
-            <b className="nav-badge">{pending}</b>
+            <b className="nav-badge" key={pending}>{pending}</b>
           )}
         </NavLink>
       ))}
@@ -153,14 +153,14 @@ export const AppShell = () => {
           </span>
           <span>
             <b>Bar Misaki</b>
-            <small>LOUNGE OPERATIONS</small>
+            <small>BLACK CAT BAR</small>
           </span>
         </NavLink>
-        <p className="nav-section-label">FLOOR CONTROL</p>
+        <p className="nav-section-label">店内オペレーション</p>
         {nav()}
         <div className="sidebar-bottom">
           <div className="sidebar-signature" aria-hidden="true">
-            <span>海咲</span>
+            <span>黒猫が待つ夜</span>
             <small>A NIGHT TO REMEMBER</small>
           </div>
           <button

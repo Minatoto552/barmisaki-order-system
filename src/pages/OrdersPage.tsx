@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ChefHat,
   Eye,
+  PawPrint,
   UserRound,
 } from "lucide-react";
 import { memo, useMemo, useState } from "react";
@@ -336,7 +337,7 @@ const OrderRow = memo(function OrderRow({
   const lines = summarizeOrderItems(group.orders);
   return (
     <article
-      className={`order-catalog-row ${group.status !== "completed" ? tone : "is-completed"}`}
+      className={`order-catalog-row instance-${group.instance ?? "legacy"} ${group.status !== "completed" ? tone : "is-completed"}`}
       role="row"
     >
       <div className="order-number-cell" role="cell">
@@ -425,6 +426,13 @@ const OrderRow = memo(function OrderRow({
             );
           })}
         </div>
+        {group.status === "preparing" && (
+          <span className="paw-trail" aria-hidden="true">
+            <PawPrint />
+            <PawPrint />
+            <PawPrint />
+          </span>
+        )}
       </div>
       <div className="order-action-cell" role="cell">
         {isStaff ? (

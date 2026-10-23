@@ -1,4 +1,5 @@
 import {
+  Cat,
   Check,
   Flame,
   LayoutGrid,
@@ -490,9 +491,9 @@ export const MenuPage = () => {
         </Modal>
       )}
       {receipt && (
-        <Modal title="ご注文ありがとうございます" onClose={() => setReceipt("")}>
+        <Modal title="注文をお預かりしました" onClose={() => setReceipt("")}>
           <div className="success-state">
-            <Check />
+            <Cat />
             <p>受付番号</p>
             <h2>#{receipt}</h2>
             <p>できあがるまで、少しだけお待ちください。</p>
