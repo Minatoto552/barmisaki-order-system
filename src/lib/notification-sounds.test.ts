@@ -27,6 +27,16 @@ describe('notification sounds', () => {
     vi.stubGlobal('AudioContext', FakeAudioContext);
   });
 
+  it('初期状態では効果音を再生しない', async () => {
+    const sounds = await import('./notification-sounds');
+    const cleanup = sounds.installNotificationSoundUnlock();
+    window.dispatchEvent(new Event('pointerdown'));
+    await Promise.resolve();
+    sounds.playInteractionSound();
+    expect(starts).toHaveLength(0);
+    cleanup();
+  });
+
   it('通知音オフなら、お知らせと緊急をどちらも再生しない', async () => {
     const sounds = await import('./notification-sounds');
     localStorage.setItem('barmisaki-sound', 'off');
@@ -38,6 +48,7 @@ describe('notification sounds', () => {
 
   it('お知らせと緊急で異なる音列を再生する', async () => {
     const sounds = await import('./notification-sounds');
+    localStorage.setItem('barmisaki-sound', 'on');
     const cleanup = sounds.installNotificationSoundUnlock();
     window.dispatchEvent(new Event('pointerdown'));
     await Promise.resolve();
@@ -46,6 +57,8 @@ describe('notification sounds', () => {
     expect(starts).toHaveLength(3);
     sounds.playEmergencySound();
     expect(starts).toHaveLength(9);
+    sounds.playInteractionSound();
+    expect(starts).toHaveLength(11);
     cleanup();
   });
 });

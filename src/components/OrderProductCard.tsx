@@ -2,6 +2,7 @@ import { Coffee, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { categoryLabels, type Product } from "../types";
 import { isTemperatureProduct } from "../lib/order-options";
+import { playInteractionSound } from "../lib/notification-sounds";
 
 export type ProductViewMode = "compact" | "image";
 
@@ -31,6 +32,7 @@ export const OrderProductCard = ({
     clearTimeout(timer.current);
     setPressed(true);
     timer.current = setTimeout(() => setPressed(false), 180);
+    playInteractionSound();
     onChoose(product);
   };
   return (
