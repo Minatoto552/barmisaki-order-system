@@ -34,7 +34,7 @@ import type {
   Announcement,
   AnnouncementKind,
 } from '../types';
-import { getFirebaseServices, runtimeMode } from './firebase';
+import { getFirebaseServices, getFirebaseStorageServices, runtimeMode } from './firebase';
 import { sampleProducts } from './sample-data';
 import { formatProductName } from './order-options';
 import { productImagePath } from './product-image';
@@ -151,7 +151,7 @@ const compressImage = async (file: File, maxSide = 720, quality = 0.72): Promise
  * so orders carry a short reference instead of a copy of the image.
  */
 const uploadProductImage = async (file: File, ownerUid: string): Promise<string> => {
-  const { storage, storageApi } = await getFirebaseServices();
+  const { storage, storageApi } = await getFirebaseStorageServices();
   if (!storage || !storageApi) return compressImage(file);
   const canvas = await drawResizedImage(file, 720);
   const blob = await new Promise<Blob>((resolve, reject) => {
