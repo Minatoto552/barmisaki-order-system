@@ -1,6 +1,7 @@
 import type { FirebaseOptions } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
+import type { FirebaseStorage } from 'firebase/storage';
 
 const config: FirebaseOptions = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,13 +21,15 @@ export interface FirebaseRuntime {
   db: Firestore | null;
   authApi: typeof import('firebase/auth') | null;
   firestoreApi: typeof import('firebase/firestore') | null;
+  storage: FirebaseStorage | null;
+  storageApi: typeof import('firebase/storage') | null;
 }
 
 let runtimePromise: Promise<FirebaseRuntime> | null = null;
 
 export const getFirebaseServices = (): Promise<FirebaseRuntime> => {
   if (!hasFirebaseConfig) {
-    return Promise.resolve({ auth: null, db: null, authApi: null, firestoreApi: null });
+    return Promise.resolve({ auth: null, db: null, authApi: null, firestoreApi: null, storage: null, storageApi: null });
   }
   if (runtimePromise) return runtimePromise;
 
@@ -34,16 +37,19 @@ export const getFirebaseServices = (): Promise<FirebaseRuntime> => {
     import('firebase/app'),
     import('firebase/auth'),
     import('firebase/firestore'),
-  ]).then(([appApi, authApi, firestoreApi]) => {
+    import('firebase/storage'),
+  ]).then(([appApi, authApi, firestoreApi, storageApi]) => {
     const app = appApi.getApps().length ? appApi.getApp() : appApi.initializeApp(config);
     const auth = authApi.getAuth(app);
     const db = firestoreApi.getFirestore(app);
+    const storage = storageApi.getStorage(app);
 
     if (isEmulatorMode) {
       authApi.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
       firestoreApi.connectFirestoreEmulator(db, '127.0.0.1', 8080);
+      storageApi.connectStorageEmulator(storage, '127.0.0.1', 9199);
     }
-    return { auth, db, authApi, firestoreApi };
+    return { auth, db, authApi, firestoreApi, storage, storageApi };
   });
 
   return runtimePromise;

@@ -37,6 +37,7 @@ import type {
 import { getFirebaseServices, runtimeMode } from './firebase';
 import { sampleProducts } from './sample-data';
 import { formatProductName } from './order-options';
+import { productImagePath } from './product-image';
 import { getCurrentServiceDayStart } from './service-day';
 import { validateOrderInstance, validateProduct, validateTableNumber } from './validation';
 
@@ -119,7 +120,7 @@ const toDataUrl = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
-const compressImage = async (file: File, maxSide = 720, quality = 0.72): Promise<string> => {
+const drawResizedImage = async (file: File, maxSide: number): Promise<HTMLCanvasElement> => {
   const source = await toDataUrl(file);
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const element = new Image();
@@ -134,10 +135,31 @@ const compressImage = async (file: File, maxSide = 720, quality = 0.72): Promise
   const context = canvas.getContext('2d');
   if (!context) throw new Error('画像を処理できませんでした。');
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  const result = canvas.toDataURL('image/jpeg', quality);
+  return canvas;
+};
+
+/** Sample mode keeps images inline in localStorage, so the data URL must stay small. */
+const compressImage = async (file: File, maxSide = 720, quality = 0.72): Promise<string> => {
+  const result = (await drawResizedImage(file, maxSide)).toDataURL('image/jpeg', quality);
   if (result.length > 320_000 && maxSide > 520) return compressImage(file, 520, 0.6);
   if (result.length > 320_000) throw new Error('画像サイズが大きすぎます。別の画像を選択してください。');
   return result;
+};
+
+/**
+ * Firebase mode stores the image in Storage and keeps only its download URL in Firestore,
+ * so orders carry a short reference instead of a copy of the image.
+ */
+const uploadProductImage = async (file: File, ownerUid: string): Promise<string> => {
+  const { storage, storageApi } = await getFirebaseServices();
+  if (!storage || !storageApi) return compressImage(file);
+  const canvas = await drawResizedImage(file, 720);
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((result) => (result ? resolve(result) : reject(new Error('画像を処理できませんでした。'))), 'image/jpeg', 0.8);
+  });
+  const reference = storageApi.ref(storage, productImagePath(ownerUid, makeId()));
+  await storageApi.uploadBytes(reference, blob, { contentType: 'image/jpeg' });
+  return storageApi.getDownloadURL(reference);
 };
 
 const makeId = () => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -308,10 +330,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [isStaff, serviceDayStart, user]);
 
-  const uploadImage = useCallback(async (file: File, path: string) => {
-    void path;
-    return compressImage(file);
-  }, []);
+  const uploadImage = useCallback((file: File, ownerUid: string) => uploadProductImage(file, ownerUid), []);
 
   const requireProfile = useCallback(() => {
     if (!profile) throw new Error('先にアカウントを登録してください。');
@@ -389,7 +408,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const current = await ensureProfile();
     const errors = validateProduct(draft.category, draft.name, draft.image, draft.recipe);
     if (errors.length) throw new Error(errors.join('\n'));
-    const imageUrl = draft.image ? await uploadImage(draft.image, `products/${current.id}`) : '';
+    const imageUrl = draft.image ? await uploadImage(draft.image, current.id) : '';
     const timestamp = nowIso();
     const base = {
       name: draft.name.trim(), imageUrl, createdBy: current.id, creatorName: current.displayName,
@@ -407,13 +426,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [ensureProfile, products, uploadImage]);
 
   const updateProduct = useCallback(async (id: string, draft: ProductEditDraft, expectedUpdatedAt: string) => {
-    requireProfile();
+    const current = requireProfile();
     const existing = products.find((product) => product.id === id);
     assertProductRevision(existing, expectedUpdatedAt);
     const errors = validateProduct(draft.category, draft.name, draft.image, draft.recipe);
     if (errors.length) throw new Error(errors.join('\n'));
     throttle();
-    const imageUrl = draft.image ? await uploadImage(draft.image, `products/${id}`) : undefined;
+    const imageUrl = draft.image ? await uploadImage(draft.image, current.id) : undefined;
     const updatedAt = nowIso();
     const changes = {
       name: draft.name.trim(), category: draft.category, updatedAt,
@@ -454,7 +473,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const errors = validateProduct(draft.category, draft.name, draft.image, draft.recipe);
     if (errors.length) throw new Error(errors.join('\n'));
     throttle();
-    const imageUrl = draft.image ? await uploadImage(draft.image, `products/${current.id}`) : source!.imageUrl;
+    const imageUrl = draft.image ? await uploadImage(draft.image, current.id) : source!.imageUrl;
     const timestamp = nowIso();
     const base = { name: draft.name.trim(), imageUrl, createdBy: current.id, creatorName: current.displayName, isAvailable: true, createdAt: timestamp, updatedAt: timestamp };
     const next: ProductWithoutId = draft.category === 'original_cocktail'
