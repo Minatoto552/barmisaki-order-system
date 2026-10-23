@@ -153,15 +153,21 @@ const compressImage = async (file: File, maxSide = 720, quality = 0.72): Promise
  * so orders carry a short reference instead of a copy of the image.
  */
 const uploadProductImage = async (file: File, ownerUid: string): Promise<string> => {
-  const { storage, storageApi } = await getFirebaseStorageServices();
-  if (!storage || !storageApi) return compressImage(file);
-  const canvas = await drawResizedImage(file, 720);
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((result) => (result ? resolve(result) : reject(new Error('画像を処理できませんでした。'))), 'image/jpeg', 0.8);
-  });
-  const reference = storageApi.ref(storage, productImagePath(ownerUid, makeId()));
-  await storageApi.uploadBytes(reference, blob, { contentType: 'image/jpeg' });
-  return storageApi.getDownloadURL(reference);
+  try {
+    const { storage, storageApi } = await getFirebaseStorageServices();
+    if (!storage || !storageApi) return compressImage(file);
+    const canvas = await drawResizedImage(file, 720);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((result) => (result ? resolve(result) : reject(new Error('画像を処理できませんでした。'))), 'image/jpeg', 0.8);
+    });
+    const reference = storageApi.ref(storage, productImagePath(ownerUid, makeId()));
+    await storageApi.uploadBytes(reference, blob, { contentType: 'image/jpeg' });
+    return storageApi.getDownloadURL(reference);
+  } catch {
+    // Storage is optional during rollout. Keep product registration available
+    // with the previous bounded data URL until the production bucket is ready.
+    return compressImage(file);
+  }
 };
 
 const makeId = () => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
