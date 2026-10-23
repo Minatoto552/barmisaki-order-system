@@ -37,6 +37,7 @@ import type {
 import { getFirebaseServices, runtimeMode } from './firebase';
 import { sampleProducts } from './sample-data';
 import { formatProductName } from './order-options';
+import { getCurrentServiceDayStart } from './service-day';
 import { validateOrderInstance, validateProduct, validateTableNumber } from './validation';
 
 interface ProductDraft {
@@ -165,6 +166,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [emergencies, setEmergencies] = useState<Emergency[]>(() => readJson(KEYS.emergencies, []));
   const [announcements, setAnnouncements] = useState<Announcement[]>(() => readJson(KEYS.announcements, []));
   const [isStaff, setIsStaff] = useState(true);
+  const [serviceDayStart, setServiceDayStart] = useState(() => getCurrentServiceDayStart());
   const lastMutation = useRef(0);
   const recoveringProfile = useRef(false);
 
@@ -221,7 +223,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribers: Array<() => void> = [];
     void getFirebaseServices().then(({ db, firestoreApi }) => {
       if (disposed || !db || !firestoreApi) return;
-      const { collection, doc, onSnapshot, orderBy, query, where } = firestoreApi;
+      const { collection, doc, onSnapshot, orderBy, query } = firestoreApi;
       unsubscribers = [
         onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
           if (snapshot.exists()) {
@@ -255,9 +257,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           setProducts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Product));
           setReady(true);
         }),
-        onSnapshot(query(collection(db, 'orders'), ...(isStaff ? [] : [where('orderedBy', '==', user.uid)]), orderBy('createdAt', 'desc')), (snapshot) => {
-          setOrders(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Order));
-        }),
         onSnapshot(query(collection(db, 'emergencies'), orderBy('createdAt', 'desc')), (snapshot) => {
           setEmergencies(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Emergency));
         }),
@@ -274,6 +273,40 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
   }, [isStaff, user]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const next = getCurrentServiceDayStart();
+      setServiceDayStart((current) => (current === next ? current : next));
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    let disposed = false;
+    let unsubscribe = () => {};
+    void getFirebaseServices().then(({ db, firestoreApi }) => {
+      if (disposed || !db || !firestoreApi) return;
+      const { collection, onSnapshot, orderBy, query, where } = firestoreApi;
+      const since = new Date(serviceDayStart).toISOString();
+      unsubscribe = onSnapshot(
+        query(
+          collection(db, 'orders'),
+          ...(isStaff ? [] : [where('orderedBy', '==', user.uid)]),
+          where('createdAt', '>=', since),
+          orderBy('createdAt', 'desc'),
+        ),
+        (snapshot) => {
+          setOrders(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Order));
+        },
+      );
+    });
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
+  }, [isStaff, serviceDayStart, user]);
 
   const uploadImage = useCallback(async (file: File, path: string) => {
     void path;
