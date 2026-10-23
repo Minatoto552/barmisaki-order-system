@@ -16,7 +16,6 @@ import {
   installNotificationSoundUnlock,
   playAnnouncementSound,
 } from "../lib/notification-sounds";
-import { getCurrentServiceDayStart } from "../lib/service-day";
 import { getOrderNotificationKey } from "../lib/order-notifications";
 import { EmergencySystem } from "./EmergencySystem";
 import { AnnouncementToast } from "./AnnouncementToast";
@@ -28,8 +27,16 @@ const links = [
   { to: "/account", label: "アカウント", icon: CircleUserRound },
 ];
 export const AppShell = () => {
-  const { profile, runtimeMode, ready, error, orders, announcements, isStaff } =
-    useData();
+  const {
+    profile,
+    runtimeMode,
+    ready,
+    error,
+    orders,
+    announcements,
+    isStaff,
+    serviceDayStart: dayStart,
+  } = useData();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem("barmisaki-sidebar") === "collapsed",
@@ -41,11 +48,9 @@ export const AppShell = () => {
   const [lastSeen, setLastSeen] = useState(() =>
     Number(localStorage.getItem("barmisaki-notices-seen") || 0),
   );
-  const [clock, setClock] = useState(Date.now);
   const [newNotice, setNewNotice] = useState("");
   const started = useRef(Date.now());
   const seenOrders = useRef(new Set<string>());
-  const dayStart = getCurrentServiceDayStart(new Date(clock));
   const pending = useMemo(
     () =>
       new Set(
@@ -65,10 +70,6 @@ export const AppShell = () => {
       new Date(a.createdAt).getTime() > lastSeen,
   ).length;
   useEffect(() => installNotificationSoundUnlock(), []);
-  useEffect(() => {
-    const timer = window.setInterval(() => setClock(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, []);
   useEffect(() => {
     document.title = `${links.find((link) => location.pathname === link.to)?.label || "注文"} | BarMisaki`;
     window.scrollTo(0, 0);

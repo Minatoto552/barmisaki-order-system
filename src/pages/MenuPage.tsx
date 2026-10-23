@@ -490,12 +490,12 @@ export const MenuPage = () => {
         </Modal>
       )}
       {receipt && (
-        <Modal title="注文を受け付けました" onClose={() => setReceipt("")}>
+        <Modal title="ご注文ありがとうございます" onClose={() => setReceipt("")}>
           <div className="success-state">
             <Check />
             <p>受付番号</p>
             <h2>#{receipt}</h2>
-            <p>テーブルまでお届けします。</p>
+            <p>できあがるまで、少しだけお待ちください。</p>
             <button className="primary-button" onClick={() => setReceipt("")}>
               注文を続ける
             </button>

@@ -32,3 +32,21 @@ export const getOrderAge = (createdAt: string, now: number) => {
     isNew: seconds < 30,
   };
 };
+
+/** Elapsed time since the order was placed, as mm:ss (with hours once past one hour). */
+export const formatElapsed = (createdAt: string, now: number) => {
+  const total = Math.max(0, Math.floor((now - Date.parse(createdAt)) / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const value = [minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+  return hours ? `${String(hours).padStart(2, "0")}:${value}` : value;
+};
+
+export const elapsedTone = (createdAt: string, now: number) => {
+  const total = Math.max(0, Math.floor((now - Date.parse(createdAt)) / 1000));
+  if (total >= 900) return "critical";
+  if (total >= 600) return "late";
+  if (total >= 300) return "waiting";
+  return "normal";
+};

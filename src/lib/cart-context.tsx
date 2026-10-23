@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useState,
@@ -7,6 +8,12 @@ import {
 } from "react";
 import type { CartItem, OrderInstance, OrderOptions, Product } from "../types";
 import { addCartItem, getCartQuantity, setCartItemQuantity } from "./cart";
+import { isTableNumber } from "./table-numbers";
+import { loadStoredChoice, saveStoredChoice } from "./stored-choice";
+
+const TABLE_KEY = "barmisaki-last-table";
+const INSTANCE_KEY = "barmisaki-last-instance";
+const isInstance = (value: string) => value === "first" || value === "second";
 interface CartValue {
   items: CartItem[];
   table: string;
@@ -21,8 +28,20 @@ interface CartValue {
 const Context = createContext<CartValue | null>(null);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [table, setTable] = useState("");
-  const [instance, setInstance] = useState<OrderInstance | "">("");
+  // The last table and instance are remembered on this device. The order
+  // confirmation step still shows them, so a stale choice is caught before sending.
+  const [table, setTableState] = useState(() => loadStoredChoice(TABLE_KEY, isTableNumber));
+  const [instance, setInstanceState] = useState<OrderInstance | "">(
+    () => loadStoredChoice(INSTANCE_KEY, isInstance) as OrderInstance | "",
+  );
+  const setTable = useCallback((value: string) => {
+    setTableState(value);
+    saveStoredChoice(TABLE_KEY, value);
+  }, []);
+  const setInstance = useCallback((value: OrderInstance | "") => {
+    setInstanceState(value);
+    saveStoredChoice(INSTANCE_KEY, value);
+  }, []);
   const value = useMemo<CartValue>(
     () => ({
       items,
@@ -35,13 +54,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setItems((current) => addCartItem(current, product, options, quantity)),
       change: (id, quantity) =>
         setItems((current) => setCartItemQuantity(current, id, quantity)),
-      clear: () => {
-        setItems([]);
-        setTable("");
-        setInstance("");
-      },
+      clear: () => setItems([]),
     }),
-    [items, table, instance],
+    [items, table, instance, setTable, setInstance],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 };
