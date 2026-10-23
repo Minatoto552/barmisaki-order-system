@@ -43,7 +43,7 @@ export const AppShell = () => {
   );
   const [notifications, setNotifications] = useState(false);
   const [sound, setSound] = useState(
-    () => localStorage.getItem("barmisaki-sound") !== "off",
+    () => localStorage.getItem("barmisaki-sound") === "on",
   );
   const [lastSeen, setLastSeen] = useState(() =>
     Number(localStorage.getItem("barmisaki-notices-seen") || 0),
@@ -216,7 +216,7 @@ export const AppShell = () => {
             </span>
             <button
               className="icon-button"
-              aria-label={sound ? "通知音をオフにする" : "通知音をオンにする"}
+              aria-label={sound ? "効果音をオフにする" : "効果音をオンにする"}
               aria-pressed={sound}
               onClick={toggleSound}
             >

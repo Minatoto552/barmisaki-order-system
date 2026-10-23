@@ -1,4 +1,4 @@
-type SoundKind = 'emergency' | 'announcement';
+type SoundKind = 'emergency' | 'announcement' | 'interaction';
 
 let audioContext: AudioContext | null = null;
 let soundReady = false;
@@ -22,7 +22,7 @@ const tone = (context: AudioContext, frequency: number, start: number, duration:
 };
 
 const play = (kind: SoundKind) => {
-  if (localStorage.getItem('barmisaki-sound') === 'off') return;
+  if (localStorage.getItem('barmisaki-sound') !== 'on') return;
   if (!soundReady) return;
   const context = getAudioContext();
   if (context.state !== 'running') return;
@@ -36,6 +36,12 @@ const play = (kind: SoundKind) => {
     return;
   }
 
+  if (kind === 'interaction') {
+    tone(context, 740, now, 0.1, 0.055, 'sine');
+    tone(context, 988, now + 0.06, 0.12, 0.045, 'sine');
+    return;
+  }
+
   [523.25, 659.25, 783.99].forEach((frequency, index) => {
     tone(context, frequency, now + index * 0.11, 0.28, 0.1, 'sine');
   });
@@ -43,6 +49,7 @@ const play = (kind: SoundKind) => {
 
 export const playEmergencySound = () => play('emergency');
 export const playAnnouncementSound = () => play('announcement');
+export const playInteractionSound = () => play('interaction');
 
 /** Browsers require one user gesture before notification audio can start. */
 export const installNotificationSoundUnlock = () => {

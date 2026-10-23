@@ -12,6 +12,7 @@ import { RecipeViewer } from "../components/RecipeViewer";
 import { OptionSummary } from "../components/CartPanel";
 import { useClockValue } from "../lib/clock";
 import { useData } from "../lib/data";
+import { playInteractionSound } from "../lib/notification-sounds";
 import {
   groupOrdersByCart,
   matchesOrderGroupFilter,
@@ -113,6 +114,7 @@ export const OrdersPage = () => {
           .filter((o) => o.status !== status)
           .map((o) => updateOrder(o.id, status)),
       );
+      playInteractionSound();
     } catch {
       setError(
         "一部の状態を更新できませんでした。接続を確認し、もう一度お試しください。",
@@ -408,10 +410,21 @@ const OrderRow = memo(function OrderRow({
         {group.status === "completed" ? "—" : <ElapsedValue createdAt={group.createdAt} />}
       </div>
       <div className="order-table-cell status-cell" role="cell">
-        <span className={`status-pill ${group.status}`}>
-          <i />
-          {orderStatusLabels[group.status]}
-        </span>
+        <div className="status-flow" data-status={group.status} key={group.status} aria-label={`現在の状態：${orderStatusLabels[group.status]}`}>
+          {orderStatuses.map((status, index) => {
+            const current = orderStatuses.indexOf(group.status);
+            return (
+              <span
+                key={status}
+                className={`${index <= current ? "reached" : ""} ${status === group.status ? "current" : ""}`}
+                title={orderStatusLabels[status]}
+              >
+                <i />
+                <small>{orderStatusLabels[status]}</small>
+              </span>
+            );
+          })}
+        </div>
       </div>
       <div className="order-action-cell" role="cell">
         {isStaff ? (
@@ -427,8 +440,8 @@ const OrderRow = memo(function OrderRow({
               {busy
                 ? "更新中…"
                 : group.status === "pending"
-                  ? "対応を開始"
-                  : "完了にする"}
+                  ? "調理をはじめる"
+                  : "お待たせしました"}
             </button>
           ) : (
             <button

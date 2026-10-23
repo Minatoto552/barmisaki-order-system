@@ -503,6 +503,12 @@ textarea::placeholder {
 .pos-product-card.product-pressed:hover:not(:disabled) {
   background: #392646;
   border-color: #ccb18a;
+  animation: product-add-hop 180ms ease-out;
+}
+@keyframes product-add-hop {
+  0% { transform: translateY(0) scale(1); }
+  45% { transform: translateY(-4px) scale(1.025); }
+  100% { transform: translateY(0) scale(1); }
 }
 .image-product-grid .pos-product-copy {
   min-height: 86px;
@@ -791,14 +797,18 @@ textarea::placeholder {
 .order-catalog-row {
   position: relative;
   color: #c9c0d1;
-  border-bottom: 1px solid #ffffff12;
-  transition: background 0.16s ease;
+  border-bottom: 1px dashed #c9a96e45;
+  background:
+    linear-gradient(90deg, #c9a96e0a 0 1px, transparent 1px 100%),
+    #17111f;
+  transition: background 0.16s ease, transform 0.16s ease, opacity 0.16s ease;
 }
 .order-catalog-row:last-child {
   border-bottom: 0;
 }
 .order-catalog-row:hover {
   background: #21182b;
+  transform: translateX(2px);
 }
 .order-catalog-row::before {
   content: "";
@@ -945,6 +955,50 @@ textarea::placeholder {
 }
 .status-cell .status-pill {
   white-space: nowrap;
+}
+.status-flow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  animation: ticket-flow-in 180ms ease-out both;
+}
+.status-flow > span {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: #746b7b;
+}
+.status-flow > span:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: calc(50% + 5px);
+  width: calc(100% - 10px);
+  height: 1px;
+  background: #ffffff24;
+}
+.status-flow > span.reached:not(:last-child)::after { background: #c9a96e; }
+.status-flow i {
+  width: 10px;
+  height: 10px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: #17111f;
+  z-index: 1;
+}
+.status-flow .reached { color: #c9a96e; }
+.status-flow .current { color: #f0d9ad; }
+.status-flow .current i { background: currentColor; box-shadow: 0 0 0 3px #c9a96e24; }
+.status-flow small {
+  max-width: 3.5em;
+  font-size: 7px;
+  line-height: 1.15;
+  text-align: center;
+}
+@keyframes ticket-flow-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 .order-action-cell {
   justify-content: center;
@@ -1444,9 +1498,10 @@ textarea::placeholder {
   transform: rotate(-6deg);
   opacity: 0.85;
   pointer-events: none;
-  animation: order-stamp 0.22s ease-out both;
+  animation: order-stamp 0.9s ease-out both;
 }
 @keyframes order-stamp {
-  from { opacity: 0; transform: rotate(-6deg) scale(1.35); }
-  to { opacity: 0.85; transform: rotate(-6deg) scale(1); }
+  0% { opacity: 0; transform: rotate(-6deg) scale(1.35); }
+  22%, 72% { opacity: 0.9; transform: rotate(-6deg) scale(1); }
+  100% { opacity: 0; transform: rotate(-6deg) scale(0.96); }
 }
